@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SITTA UT — Sistem pemesanan dan distribusi bahan ajar Universitas Terbuka (Tugas Praktik 3 STSI4209).">
+  <title>SITTA UT</title>
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <meta name="color-scheme" content="light dark">
+  <!-- Pasang tema sebelum halaman dirender agar tidak berkedip terang saat mode gelap aktif.
+       Tidak ada pilihan tersimpan -> ikuti tema sistem (default). -->
+
+  <script>
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem('sitta-ut:theme'); } catch (e) { /* abaikan */ }
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+</head>
+<body>
+  <!-- Layar pemuatan awal (dihapus otomatis setelah Vue di-mount) -->
+  <div id="boot" class="boot">
+    <div class="boot__spinner" aria-hidden="true"></div>
+    <p>Memuat SITTA…</p>
+  </div>
+
+  <!-- =====================================================================
+       ROOT VUE INSTANCE — #app
+       Routing antarhalaman memakai tab state: 'dashboard' | 'stok' | 'tracking' | 'order'
+       ===================================================================== -->
+  <div id="app" class="layout" :class="{ 'is-sidebar-open': sidebarOpen, 'is-sidebar-collapsed': sidebarCollapsed }" v-cloak>
+
+    <!-- ===== Sidebar navigasi ===== -->
+    <aside id="sidebar" class="sidebar" aria-label="Navigasi utama">
+      <div class="sidebar__brand">
+        <img src="assets/img/logo.svg" alt="" class="sidebar__logo" width="36" height="36">
+        <div class="sidebar__brand-text">
+          <strong class="sidebar__name">SITTA</strong>
+          <span class="sidebar__tagline">Bahan Ajar UT</span>
+        </div>
+      </div>
+
+      <p class="sidebar__section">Menu</p>
+      <nav class="nav">
+        <button v-for="(t, i) in tabs" :key="t.key" type="button" class="nav__item"
+                :class="{ 'is-active': tab === t.key }" :aria-current="tab === t.key ? 'page' : null"
+                :title="t.label + ' (Alt+' + (i + 1) + ')'" @click="tab = t.key">
+          <i class="bi" :class="t.icon" aria-hidden="true"></i>
+          <span class="nav__label">{{ t.label }}</span>
+          <span v-if="t.key === 'stok' && reorderCount > 0" class="nav__badge nav__badge--warning" title="Perlu re-order">{{ reorderCount }}</span>
+          <span v-else-if="t.key === 'tracking' && activeDoCount > 0" class="nav__badge" title="DO aktif">{{ activeDoCount }}</span>
+          <kbd v-else class="nav__kbd">Alt {{ i + 1 }}</kbd>
+        </button>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="data-source" :title="source === 'storage' ? 'Sumber data: tersimpan lokal' : 'Sumber data: dataBahanAjar.json'">
+          <i class="bi" :class="source === 'storage' ? 'bi-hdd-stack' : 'bi-filetype-json'" aria-hidden="true"></i>
+          <div class="data-source__text">
+            <span class="data-source__label">Sumber data</span>
+            <span v-if="source === 'storage'" class="data-source__value">Tersimpan lokal<template v-if="savedAt"> · {{ savedAt | waktu }}</template></span>
+            <span v-else class="data-source__value">dataBahanAjar.json</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn--sidebar" title="Reset data awal" :disabled="loading" @click="resetData">
+          <i class="bi bi-arrow-counterclockwise"></i> <span class="btn__text">Reset data awal</span>
+        </button>
+        <p class="sidebar__meta">STSI4209 · Tugas Praktik 3</p>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" v-show="sidebarOpen" @click="sidebarOpen = false"></div>
+
+    <!-- ===== Area utama ===== -->
+    <div class="main">
+      <header class="topbar">
+        <!-- Tombol burger: desktop -> ciutkan/lebarkan sidebar, mobile -> buka/tutup drawer -->
+        <button type="button" class="btn-icon topbar__menu" aria-controls="sidebar"
+                :aria-expanded="String(isMobile ? sidebarOpen : !sidebarCollapsed)"
+                :aria-label="menuButtonLabel" :title="menuButtonLabel" @click="toggleSidebar">
+          <i class="bi" :class="isMobile || !sidebarCollapsed ? 'bi-list' : 'bi-layout-sidebar-inset'"></i>
+        </button>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <span>SITTA</span>
+          <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          <span class="breadcrumb__current" v-text="currentTab.title"></span>
+        </nav>
+        <div class="topbar__actions">
+          <span class="topbar__date"><i class="bi bi-calendar3"></i> {{ todayText }}</span>
+          <theme-switcher v-model="themePref" :effective="theme"></theme-switcher>
+          <div class="user-chip">
+            <span class="avatar avatar--brand">AD</span>
+            <span class="user-chip__text"><strong>Admin</strong><small>Staf UT-Daerah</small></span>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- Status pemuatan data: v-if / v-else-if / v-else -->
+        <div v-if="loading" class="skeleton-page" aria-busy="true">
+          <div class="skeleton skeleton--title"></div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton--card"></div><div class="skeleton skeleton--card"></div>
+            <div class="skeleton skeleton--card"></div><div class="skeleton skeleton--card"></div>
+          </div>
+          <div class="skeleton skeleton--table"></div>
+        </div>
+
+        <div v-else-if="error" class="card empty empty--panel">
+          <i class="bi bi-cloud-slash empty__icon text-danger"></i>
+          <p class="empty__title">Data gagal dimuat</p>
+          <p class="empty__text">{{ error }}. Pastikan aplikasi dijalankan melalui web server lokal.</p>
+          <button type="button" class="btn btn--primary btn--sm" @click="loadData(true)"><i class="bi bi-arrow-clockwise"></i> Coba lagi</button>
+        </div>
+
+        <template v-else>
+          <section v-show="tab === 'dashboard'" class="view">
+            <dashboard-overview :stok="state.stok" :tracking="state.tracking" :upbjj-list="state.upbjjList"
+                                @navigate="go" @show-reorder="showReorder" @open-do="openDo"></dashboard-overview>
+          </section>
+
+          <section v-show="tab === 'stok'" class="view">
+            <ba-stock-table ref="stock" :items="state.stok"
+                            :upbjj-list="state.upbjjList" :kategori-list="state.kategoriList"
+                            @save="saveStock" @delete="deleteStock"></ba-stock-table>
+          </section>
+
+          <section v-show="tab === 'tracking'" class="view">
+            <do-tracking ref="tracking" :data="state.tracking" :paket="state.paket" :stok="state.stok" :focus="focusDo"
+                         @add-progress="addProgress" @new-order="go('order')"></do-tracking>
+          </section>
+
+          <section v-show="tab === 'order'" class="view">
+            <order-form :paket="state.paket" :ekspedisi="state.pengirimanList" :stok="state.stok"
+                        :next-number="nextDoNumber" @created="handleNewDO"></order-form>
+          </section>
+        </template>
+      </main>
+
+      <footer class="footer">
+        <span>© {{ new Date().getFullYear() }} SITTA · Sistem Informasi Tiras dan Transaksi Bahan Ajar</span>
+        <span class="footer__keys"><kbd>Alt</kbd>+<kbd>1–4</kbd> pindah menu · <kbd>/</kbd> cari · <kbd>Esc</kbd> tutup</span>
+      </footer>
+    </div>
+
+    <!-- Komponen global -->
+    <app-modal ref="modal"></app-modal>
+    <app-toast ref="toast"></app-toast>
+  </div>
+
+  <!-- Template komponen dimuat dari folder /templates oleh js/services/api.js
+       (tpl-badge, tpl-modal, tpl-toast, tpl-dashboard, tpl-stock, tpl-stock-form, tpl-tracking, tpl-order, tpl-theme) -->
+
+  <!-- Scripts (urutan penting) -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <script src="js/services/api.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/components/status-badge.js"></script>
+  <script src="js/components/app-modal.js"></script>
+  <script src="js/components/app-toast.js"></script>
+  <script src="js/components/dashboard-overview.js"></script>
+  <script src="js/components/stock-form.js"></script>
+  <script src="js/components/stock-table.js"></script>
+  <script src="js/components/do-tracking.js"></script>
+  <script src="js/components/order-form.js"></script>
+  <script src="js/components/theme-switcher.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

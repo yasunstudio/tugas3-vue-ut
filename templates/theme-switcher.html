@@ -1,0 +1,30 @@
+<!-- Template komponen <theme-switcher> (js/components/theme-switcher.js) -->
+<template id="tpl-theme">
+  <div class="theme-switcher" @keydown.esc.stop="close()">
+    <button ref="button" type="button" class="btn-icon" :class="{ 'is-active': open }"
+            aria-haspopup="menu" :aria-expanded="String(open)" :aria-label="buttonLabel" :title="buttonLabel"
+            @click="toggle">
+      <i class="bi" :class="current.icon" aria-hidden="true"></i>
+    </button>
+
+    <transition name="pop">
+      <div v-if="open" class="theme-menu" role="menu" aria-label="Pilih tema"
+           @keydown.down.prevent="moveFocus(1)" @keydown.up.prevent="moveFocus(-1)"
+           @keydown.home.prevent="moveFocus('first')" @keydown.end.prevent="moveFocus('last')">
+        <p class="theme-menu__title">Tema tampilan</p>
+        <button v-for="opt in options" :key="opt.value" type="button" class="theme-menu__item"
+                role="menuitemradio" :aria-checked="String(value === opt.value)"
+                :class="{ 'is-selected': value === opt.value }" @click="choose(opt.value)">
+          <i class="bi theme-menu__icon" :class="opt.icon" aria-hidden="true"></i>
+          <span class="theme-menu__text">
+            <span class="theme-menu__label">{{ opt.label }}</span>
+            <span v-if="opt.hint" class="theme-menu__hint">
+              {{ opt.hint }} · {{ effective === 'dark' ? 'gelap' : 'terang' }}
+            </span>
+          </span>
+          <i v-show="value === opt.value" class="bi bi-check2 theme-menu__check" aria-hidden="true"></i>
+        </button>
+      </div>
+    </transition>
+  </div>
+</template>

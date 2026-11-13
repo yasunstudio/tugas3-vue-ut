@@ -1,0 +1,143 @@
+<!-- Template komponen <order-form> (js/components/order-form.js) -->
+<template id="tpl-order">
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Pemesanan Bahan Ajar</h1>
+        <p class="page-subtitle">Buat Delivery Order (DO) baru untuk pengiriman paket bahan ajar ke mahasiswa.</p>
+      </div>
+    </div>
+
+    <div class="split split--form">
+      <!-- ================= Formulir DO ================= -->
+      <form class="card order-card" novalidate @submit.prevent="submit" @keydown.enter="onEnter">
+        <div class="card__header">
+          <h2 class="card__title"><i class="bi bi-file-earmark-plus"></i> Data Delivery Order</h2>
+          <span class="text-muted text-sm"><span class="req">*</span> wajib diisi</span>
+        </div>
+
+        <div class="card__body form-grid">
+          <!-- Nomor DO (otomatis) -->
+          <div class="field field--full">
+            <label class="field__label" for="of-nomor">Nomor DO</label>
+            <div class="input-group">
+              <span class="input-group__addon"><i class="bi bi-hash"></i></span>
+              <input id="of-nomor" class="input input--mono" type="text" :value="nextNumber" readonly>
+              <span class="input-group__addon input-group__addon--badge"><i class="bi bi-magic"></i> Otomatis</span>
+            </div>
+            <p class="field__hint">Format: DO + tahun berjalan + nomor urut (melanjutkan data tracking terakhir).</p>
+          </div>
+
+          <!-- NIM -->
+          <div class="field">
+            <label class="field__label" for="of-nim">NIM <span class="req">*</span></label>
+            <input id="of-nim" v-model.trim="form.nim" class="input input--mono" :class="{ 'is-invalid': errorOf('nim') }"
+                   type="text" inputmode="numeric" maxlength="9" placeholder="123456789" autocomplete="off" @blur="touch('nim')">
+            <p v-if="errorOf('nim')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('nim') }}</p>
+            <p v-else class="field__hint">{{ form.nim.length }}/9 digit</p>
+          </div>
+
+          <!-- Nama -->
+          <div class="field">
+            <label class="field__label" for="of-nama">Nama Mahasiswa <span class="req">*</span></label>
+            <input id="of-nama" v-model="form.nama" class="input" :class="{ 'is-invalid': errorOf('nama') }"
+                   type="text" maxlength="60" placeholder="Nama lengkap" autocomplete="off" @blur="touch('nama')">
+            <p v-if="errorOf('nama')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('nama') }}</p>
+          </div>
+
+          <!-- Ekspedisi -->
+          <div class="field">
+            <label class="field__label" for="of-eksp">Ekspedisi <span class="req">*</span></label>
+            <select id="of-eksp" v-model="form.ekspedisi" class="input" :class="{ 'is-invalid': errorOf('ekspedisi') }" @blur="touch('ekspedisi')">
+              <option value="" disabled>Pilih ekspedisi…</option>
+              <option v-for="e in ekspedisiOptions" :key="e.kode" :value="e.kode">{{ e.label }}</option>
+            </select>
+            <p v-if="errorOf('ekspedisi')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('ekspedisi') }}</p>
+          </div>
+
+          <!-- Tanggal kirim -->
+          <div class="field">
+            <label class="field__label" for="of-tgl">Tanggal Kirim <span class="req">*</span></label>
+            <div class="input-group">
+              <input id="of-tgl" v-model="form.tanggalKirim" class="input" :class="{ 'is-invalid': errorOf('tanggalKirim') }"
+                     type="date" @blur="touch('tanggalKirim')">
+              <button type="button" class="btn btn--ghost btn--sm input-group__btn" :disabled="isToday" @mousedown.prevent @click="setToday">Hari ini</button>
+            </div>
+            <p v-if="errorOf('tanggalKirim')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('tanggalKirim') }}</p>
+            <p v-else class="field__hint"><i class="bi bi-calendar3"></i> {{ form.tanggalKirim | tanggal }}</p>
+          </div>
+
+          <!-- Paket -->
+          <div class="field field--full">
+            <label class="field__label" for="of-paket">Paket Bahan Ajar <span class="req">*</span></label>
+            <select id="of-paket" v-model="form.paket" class="input" :class="{ 'is-invalid': errorOf('paket') }" @blur="touch('paket')">
+              <option value="" disabled>Pilih paket bahan ajar…</option>
+              <option v-for="p in paket" :key="p.kode" :value="p.kode">{{ p.kode }} — {{ p.nama }}</option>
+            </select>
+            <p v-if="errorOf('paket')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('paket') }}</p>
+
+            <!-- Detail isi paket muncul setelah paket dipilih -->
+            <transition name="fade">
+              <div v-if="selectedPaket" class="paket-box">
+                <div class="paket-box__head">
+                  <span class="paket-box__title"><i class="bi bi-box-seam"></i> Isi {{ selectedPaket.nama }}</span>
+                  <span class="text-muted text-sm">{{ paketItems.length }} bahan ajar</span>
+                </div>
+                <ul class="paket-box__list">
+                  <li v-for="(it, i) in paketItems" :key="it.kode">
+                    <span class="paket-box__no">{{ i + 1 }}</span>
+                    <span class="code">{{ it.kode }}</span>
+                    <span class="paket-box__judul">{{ it.judul }}</span>
+                    <span v-if="it.harga" class="text-muted nowrap">{{ it.harga | rupiah }}</span>
+                  </li>
+                </ul>
+                <p v-if="hemat > 0" class="paket-box__note"><i class="bi bi-tag"></i> Hemat {{ hemat | rupiah }} dibanding membeli satuan ({{ hargaSatuan | rupiah }}).</p>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Total harga -->
+          <div class="field field--full">
+            <label class="field__label" for="of-total">Total Harga</label>
+            <div class="input-group">
+              <span class="input-group__addon"><i class="bi bi-cash-stack"></i></span>
+              <input id="of-total" class="input input--strong" type="text" :value="totalText" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions form-actions--card">
+          <span class="form-actions__hint"><kbd>Enter</kbd> untuk menyimpan DO</span>
+          <button type="button" class="btn btn--ghost" @mousedown.prevent @click="resetForm">Kosongkan</button>
+          <button type="submit" class="btn btn--primary" @mousedown.prevent><i class="bi bi-send"></i> Simpan DO</button>
+        </div>
+      </form>
+
+      <!-- ================= Ringkasan pesanan (live preview) ================= -->
+      <aside class="card split__aside summary">
+        <div class="card__header">
+          <h2 class="card__title"><i class="bi bi-receipt"></i> Ringkasan</h2>
+          <span class="text-muted text-sm">{{ completion }}% lengkap</span>
+        </div>
+        <div class="progress"><span class="progress__bar" :style="{ width: completion + '%' }"></span></div>
+        <div class="card__body">
+          <dl class="summary__list">
+            <div><dt>Nomor DO</dt><dd class="mono" v-text="nextNumber"></dd></div>
+            <div><dt>NIM</dt><dd class="mono">{{ form.nim || '—' }}</dd></div>
+            <div><dt>Nama</dt><dd>{{ form.nama || '—' }}</dd></div>
+            <div><dt>Ekspedisi</dt><dd>{{ selectedEkspedisi ? selectedEkspedisi.label : '—' }}</dd></div>
+            <div><dt>Paket</dt><dd>{{ selectedPaket ? selectedPaket.nama : '—' }}</dd></div>
+            <div><dt>Tanggal Kirim</dt><dd>{{ form.tanggalKirim | tanggal }}</dd></div>
+          </dl>
+          <div class="summary__total">
+            <span>Total Harga</span>
+            <strong>{{ total | rupiah }}</strong>
+          </div>
+          <p v-if="!isValid && submitted" class="alert alert--danger"><i class="bi bi-exclamation-triangle"></i> Lengkapi {{ Object.keys(errors).length }} field yang ditandai.</p>
+          <p v-else-if="isValid" class="alert alert--success"><i class="bi bi-check-circle"></i> Data lengkap, siap disimpan.</p>
+          <p v-else class="alert alert--info"><i class="bi bi-info-circle"></i> Status awal DO: <strong>Diproses</strong>.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</template>

@@ -1,0 +1,22 @@
+<!-- Template komponen <status-badge> (js/components/status-badge.js) -->
+<template id="tpl-badge">
+  <!-- Mode status Delivery Order -->
+  <span v-if="status" class="badge" :class="['badge--' + doTone, { 'badge--compact': compact }]">
+    <i class="bi" :class="doIcon" aria-hidden="true"></i>
+    <span v-text="status"></span>
+  </span>
+
+  <!-- Mode status stok: Kosong -> Menipis -> Aman -->
+  <span v-else-if="qty === 0" class="badge badge--danger" :class="{ 'badge--compact': compact }">
+    <i class="bi bi-x-octagon-fill" aria-hidden="true"></i>
+    <span>Kosong</span>
+  </span>
+  <span v-else-if="qty < safety" class="badge badge--warning" :class="{ 'badge--compact': compact }">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <span>Menipis</span>
+  </span>
+  <span v-else class="badge badge--success" :class="{ 'badge--compact': compact }">
+    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+    <span>Aman</span>
+  </span>
+</template>

@@ -1,0 +1,17 @@
+<!-- Template komponen <app-toast> (js/components/app-toast.js) -->
+<template id="tpl-toast">
+  <div class="toast-stack" aria-live="polite">
+    <transition-group name="toast" tag="div" class="toast-stack__inner">
+      <div v-for="t in items" :key="t.id" class="toast" :class="'toast--' + t.type" role="status">
+        <i class="bi toast__icon" :class="iconOf(t.type)" aria-hidden="true"></i>
+        <div class="toast__body">
+          <strong v-if="t.title" class="toast__title" v-text="t.title"></strong>
+          <span class="toast__message" v-text="t.message"></span>
+        </div>
+        <button type="button" class="btn-icon btn-icon--sm" aria-label="Tutup notifikasi" @click="dismiss(t.id)">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </transition-group>
+  </div>
+</template>

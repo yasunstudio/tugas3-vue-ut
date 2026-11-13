@@ -1,0 +1,123 @@
+<!-- Template komponen <ba-stock-form> (js/components/stock-form.js) -->
+<template id="tpl-stock-form">
+  <form class="form" novalidate @submit.prevent="submit" @keydown.enter="onEnter">
+    <div class="form-grid">
+      <!-- Kode MK -->
+      <div class="field">
+        <label class="field__label" for="sf-kode">Kode Mata Kuliah <span class="req">*</span></label>
+        <input id="sf-kode" v-model.trim="form.kode" class="input input--mono" :class="{ 'is-invalid': errorOf('kode') }"
+               type="text" maxlength="11" placeholder="EKMA4116" autocomplete="off" @blur="touch('kode')">
+        <p v-if="errorOf('kode')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('kode') }}</p>
+      </div>
+
+      <!-- Lokasi Rak -->
+      <div class="field">
+        <label class="field__label" for="sf-rak">Lokasi Rak <span class="req">*</span></label>
+        <input id="sf-rak" v-model.trim="form.lokasiRak" class="input input--mono" :class="{ 'is-invalid': errorOf('lokasiRak') }"
+               type="text" maxlength="7" placeholder="R1-A3" autocomplete="off" @blur="touch('lokasiRak')">
+        <p v-if="errorOf('lokasiRak')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('lokasiRak') }}</p>
+      </div>
+
+      <!-- Judul -->
+      <div class="field field--full">
+        <label class="field__label" for="sf-judul">Nama Mata Kuliah <span class="req">*</span></label>
+        <input id="sf-judul" v-model="form.judul" class="input" :class="{ 'is-invalid': errorOf('judul') }"
+               type="text" maxlength="100" placeholder="Pengantar Manajemen" @blur="touch('judul')">
+        <p v-if="errorOf('judul')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('judul') }}</p>
+      </div>
+
+      <!-- Kategori -->
+      <div class="field">
+        <label class="field__label" for="sf-kategori">Kategori <span class="req">*</span></label>
+        <select id="sf-kategori" v-model="form.kategori" class="input" :class="{ 'is-invalid': errorOf('kategori') }" @blur="touch('kategori')">
+          <option value="" disabled>Pilih kategori…</option>
+          <option v-for="k in kategoriList" :key="k" :value="k">{{ k }}</option>
+        </select>
+        <p v-if="errorOf('kategori')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('kategori') }}</p>
+      </div>
+
+      <!-- UT-Daerah -->
+      <div class="field">
+        <label class="field__label" for="sf-upbjj">UT-Daerah <span class="req">*</span></label>
+        <select id="sf-upbjj" v-model="form.upbjj" class="input" :class="{ 'is-invalid': errorOf('upbjj') }" @blur="touch('upbjj')">
+          <option value="" disabled>Pilih UT-Daerah…</option>
+          <option v-for="u in upbjjList" :key="u" :value="u">{{ u }}</option>
+        </select>
+        <p v-if="errorOf('upbjj')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('upbjj') }}</p>
+      </div>
+
+      <!-- Harga -->
+      <div class="field">
+        <label class="field__label" for="sf-harga">Harga <span class="req">*</span></label>
+        <div class="input-group">
+          <span class="input-group__addon">Rp</span>
+          <input id="sf-harga" v-model.number="form.harga" class="input" :class="{ 'is-invalid': errorOf('harga') }"
+                 type="number" min="1000" step="500" placeholder="65000" @blur="touch('harga')">
+        </div>
+        <p v-if="errorOf('harga')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('harga') }}</p>
+        <p v-else-if="form.harga" class="field__hint">{{ form.harga | rupiah }}</p>
+      </div>
+
+      <!-- Qty & Safety -->
+      <div class="field field--split">
+        <div>
+          <label class="field__label" for="sf-qty">Stok <span class="req">*</span></label>
+          <div class="input-group">
+            <input id="sf-qty" v-model.number="form.qty" class="input" :class="{ 'is-invalid': errorOf('qty') }"
+                   type="number" min="0" placeholder="0" @blur="touch('qty')">
+            <span class="input-group__addon">buah</span>
+          </div>
+        </div>
+        <div>
+          <label class="field__label" for="sf-safety">Safety <span class="req">*</span></label>
+          <div class="input-group">
+            <input id="sf-safety" v-model.number="form.safety" class="input" :class="{ 'is-invalid': errorOf('safety') }"
+                   type="number" min="1" placeholder="10" @blur="touch('safety')">
+            <span class="input-group__addon">buah</span>
+          </div>
+        </div>
+        <p v-if="errorOf('qty') || errorOf('safety')" class="field__error field--full">
+          <i class="bi bi-exclamation-circle"></i> {{ errorOf('qty') || errorOf('safety') }}
+        </p>
+      </div>
+
+      <!-- Catatan HTML -->
+      <div class="field field--full">
+        <label class="field__label" for="sf-catatan">
+          Catatan <span class="field__optional">(opsional · mendukung &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;em&gt;, &lt;strong&gt;)</span>
+        </label>
+        <textarea id="sf-catatan" v-model="form.catatanHTML" class="input" :class="{ 'is-invalid': errorOf('catatanHTML') }"
+                  rows="2" maxlength="300" placeholder="Contoh: <em>Edisi 2024</em>, cetak ulang" @blur="touch('catatanHTML')"></textarea>
+        <p v-if="errorOf('catatanHTML')" class="field__error"><i class="bi bi-exclamation-circle"></i> {{ errorOf('catatanHTML') }}</p>
+      </div>
+    </div>
+
+    <!-- Pratinjau langsung (live preview) -->
+    <div class="form-preview">
+      <div class="form-preview__item">
+        <span class="form-preview__label">Status</span>
+        <status-badge v-if="canPreviewStatus" :qty="Number(form.qty)" :safety="Number(form.safety)"></status-badge>
+        <span v-else class="text-muted">—</span>
+        <small v-if="canPreviewStatus && selisih < 0" class="text-warning">kurang {{ -selisih | satuan }}</small>
+      </div>
+      <div class="form-preview__item form-preview__item--grow">
+        <span class="form-preview__label">Catatan</span>
+        <span v-if="catatanPreview" class="form-preview__html" v-html="catatanPreview"></span>
+        <span v-else class="text-muted">Tidak ada catatan</span>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <span class="form-actions__hint">
+        <kbd>Enter</kbd> simpan · <kbd>Esc</kbd> batal
+        <template v-if="submitted && !isValid"> · <span class="text-danger">{{ errorCount }} field perlu diperbaiki</span></template>
+      </span>
+      <!-- mousedown.prevent: fokus input tidak hilang -> tidak ada pergeseran layout saat diklik -->
+      <button type="button" class="btn btn--ghost" @mousedown.prevent @click="$emit('cancel')">Batal</button>
+      <button type="submit" class="btn btn--primary" @mousedown.prevent>
+        <i class="bi" :class="isEdit ? 'bi-check2-circle' : 'bi-plus-lg'"></i>
+        {{ isEdit ? 'Simpan Perubahan' : 'Tambah Bahan Ajar' }}
+      </button>
+    </div>
+  </form>
+</template>

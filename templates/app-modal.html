@@ -1,0 +1,45 @@
+<!-- Template komponen <app-modal> (js/components/app-modal.js) -->
+<template id="tpl-modal">
+  <transition name="modal">
+    <div v-if="isOpen" class="modal-backdrop" @mousedown.self="close">
+      <div ref="panel" class="modal" :class="'modal--' + currentSize"
+           role="dialog" aria-modal="true" :aria-label="currentTitle" tabindex="-1">
+
+        <header class="modal__header">
+          <div v-if="currentIcon" class="modal__icon" :class="'modal__icon--' + (dialog.open ? dialog.variant : 'primary')">
+            <i class="bi" :class="currentIcon" aria-hidden="true"></i>
+          </div>
+          <div class="modal__titles">
+            <h2 class="modal__title" v-text="currentTitle"></h2>
+            <p v-if="subtitle && !dialog.open" class="modal__subtitle" v-text="subtitle"></p>
+          </div>
+          <button type="button" class="btn-icon" title="Tutup (Esc)" aria-label="Tutup" @click="close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </header>
+
+        <!-- Mode konfirmasi -->
+        <template v-if="dialog.open">
+          <div class="modal__body">
+            <p class="modal__message" v-text="dialog.message"></p>
+            <div v-if="dialog.detail" class="modal__detail" v-text="dialog.detail"></div>
+          </div>
+          <footer class="modal__footer">
+            <span class="modal__hint"><kbd>Enter</kbd> setuju · <kbd>Esc</kbd> batal</span>
+            <button type="button" class="btn btn--ghost" @click="answer(false)">{{ dialog.cancelText }}</button>
+            <button ref="confirmBtn" type="button" class="btn"
+                    :class="dialog.variant === 'danger' ? 'btn--danger' : 'btn--primary'"
+                    @click="answer(true)">
+              {{ dialog.confirmText }}
+            </button>
+          </footer>
+        </template>
+
+        <!-- Mode slot (formulir, dsb.) -->
+        <div v-else class="modal__body">
+          <slot></slot>
+        </div>
+      </div>
+    </div>
+  </transition>
+</template>

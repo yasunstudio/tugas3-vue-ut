@@ -1,0 +1,162 @@
+<!-- Template komponen <dashboard-overview> (js/components/dashboard-overview.js) -->
+<template id="tpl-dashboard">
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <span class="eyebrow">{{ todayText }}</span>
+        <h1 class="page-title">{{ greeting }}, Admin</h1>
+        <p class="page-subtitle">Ringkasan ketersediaan bahan ajar dan pengiriman DO di seluruh UT-Daerah.</p>
+      </div>
+      <div class="page-actions">
+        <button type="button" class="btn btn--ghost" @click="$emit('navigate', 'tracking')"><i class="bi bi-truck"></i> Lacak DO</button>
+        <button type="button" class="btn btn--primary" @click="$emit('navigate', 'order')"><i class="bi bi-plus-lg"></i> Buat DO</button>
+      </div>
+    </div>
+
+    <!-- ===== KPI ===== -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi__icon kpi__icon--brand"><i class="bi bi-journal-bookmark"></i></div>
+        <div>
+          <p class="kpi__label">Judul bahan ajar</p>
+          <p class="kpi__value">{{ kpi.judul }}</p>
+          <p class="kpi__meta">{{ kpi.eksemplar | satuan }} eksemplar</p>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__icon kpi__icon--accent"><i class="bi bi-wallet2"></i></div>
+        <div>
+          <p class="kpi__label">Nilai persediaan</p>
+          <p class="kpi__value kpi__value--sm">{{ kpi.nilai | rupiah }}</p>
+          <p class="kpi__meta">harga × jumlah stok</p>
+        </div>
+      </div>
+      <button type="button" class="kpi kpi--action" @click="$emit('show-reorder')">
+        <div class="kpi__icon kpi__icon--warning"><i class="bi bi-exclamation-triangle"></i></div>
+        <div>
+          <p class="kpi__label">Perlu re-order</p>
+          <p class="kpi__value">{{ kpi.reorder }}</p>
+          <p class="kpi__meta">
+            <span :class="{ 'text-danger': kpi.kosong > 0 }">{{ kpi.kosong }} stok kosong</span>
+            <i class="bi bi-arrow-right"></i>
+          </p>
+        </div>
+      </button>
+      <button type="button" class="kpi kpi--action" @click="$emit('navigate', 'tracking')">
+        <div class="kpi__icon kpi__icon--info"><i class="bi bi-truck"></i></div>
+        <div>
+          <p class="kpi__label">Delivery Order</p>
+          <p class="kpi__value">{{ kpi.totalDO }}</p>
+          <p class="kpi__meta">{{ kpi.aktifDO }} masih aktif <i class="bi bi-arrow-right"></i></p>
+        </div>
+      </button>
+    </div>
+
+    <div class="grid-2">
+      <!-- ===== Grafik batang: stok per UT-Daerah ===== -->
+      <div class="card">
+        <div class="card__header">
+          <h2 class="card__title">Stok per UT-Daerah</h2>
+          <span class="text-muted text-sm">total eksemplar</span>
+        </div>
+        <div class="card__body">
+          <ul class="bars">
+            <li v-for="(row, i) in byUpbjj" :key="row.name" class="bars__row"
+                @mouseenter="hoverBar = row.name" @mouseleave="hoverBar = null">
+              <span class="bars__label">{{ row.name }}</span>
+              <span class="bars__track">
+                <span class="bars__fill" :style="{ width: row.pct + '%' }" v-show="row.qty > 0"></span>
+              </span>
+              <span class="bars__value">{{ row.qty | angka }}</span>
+              <transition name="fade">
+                <span v-if="hoverBar === row.name" class="bars__tip" role="tooltip">
+                  <strong>{{ row.name }}</strong>
+                  <span>{{ row.judul }} judul · {{ row.qty | satuan }}</span>
+                  <span>Nilai {{ row.nilai | rupiah }}</span>
+                  <span v-if="row.reorder" class="text-warning">{{ row.reorder }} judul perlu re-order</span>
+                </span>
+              </transition>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ===== Komposisi status stok ===== -->
+      <div class="card">
+        <div class="card__header">
+          <h2 class="card__title">Status Stok</h2>
+          <span class="text-muted text-sm">{{ kpi.judul }} judul</span>
+        </div>
+        <div class="card__body">
+          <div class="stack" role="img" :aria-label="'Aman ' + statusDist[0].count + ', Menipis ' + statusDist[1].count + ', Kosong ' + statusDist[2].count">
+            <span v-for="s in statusDist" :key="s.key" v-show="s.count > 0"
+                  class="stack__seg" :class="'stack__seg--' + s.key" :style="{ width: s.pct + '%' }"
+                  :title="s.label + ': ' + s.count + ' judul'"></span>
+          </div>
+          <ul class="status-list">
+            <li v-for="s in statusDist" :key="s.key" class="status-list__item">
+              <i class="bi" :class="[s.icon, 'text-' + s.key]"></i>
+              <span class="status-list__label">{{ s.label }}</span>
+              <span class="status-list__count">{{ s.count }} judul</span>
+              <span class="status-list__pct">{{ Math.round(s.pct) }}%</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- ===== Daftar re-order ===== -->
+      <div class="card">
+        <div class="card__header">
+          <h2 class="card__title"><i class="bi bi-arrow-repeat"></i> Prioritas Re-order</h2>
+          <button type="button" class="btn btn--link" @click="$emit('show-reorder')">Lihat semua <i class="bi bi-arrow-right"></i></button>
+        </div>
+        <ul v-if="reorderList.length" class="mini-list">
+          <li v-for="item in reorderList" :key="item.id" class="mini-list__item">
+            <div class="mini-list__main">
+              <span class="code">{{ item.kode }}</span>
+              <span class="mini-list__title">{{ item.judul }}</span>
+              <span class="mini-list__meta">{{ item.upbjj }} · Rak {{ item.lokasiRak }}</span>
+            </div>
+            <div class="mini-list__side">
+              <status-badge :qty="item.qty" :safety="item.safety" compact></status-badge>
+              <span class="mini-list__meta">kurang {{ item.kurang | satuan }}</span>
+            </div>
+          </li>
+        </ul>
+        <div v-else class="empty empty--sm">
+          <i class="bi bi-emoji-smile empty__icon text-success"></i>
+          <p class="empty__text">Semua stok di atas safety stock.</p>
+        </div>
+      </div>
+
+      <!-- ===== DO terbaru ===== -->
+      <div class="card">
+        <div class="card__header">
+          <h2 class="card__title"><i class="bi bi-clock-history"></i> Delivery Order Terbaru</h2>
+          <button type="button" class="btn btn--link" @click="$emit('navigate', 'tracking')">Lihat semua <i class="bi bi-arrow-right"></i></button>
+        </div>
+        <ul v-if="recentDO.length" class="mini-list">
+          <li v-for="d in recentDO" :key="d.nomor" class="mini-list__item mini-list__item--click"
+              tabindex="0" @click="$emit('open-do', d.nomor)" @keyup.enter="$emit('open-do', d.nomor)">
+            <span class="avatar">{{ d.nama | inisial }}</span>
+            <div class="mini-list__main">
+              <span class="mini-list__title mono">{{ d.nomor }}</span>
+              <span class="mini-list__meta">{{ d.nama }} · {{ d.tanggalKirim | tanggal }}</span>
+              <span v-if="d.last" class="mini-list__meta"><i class="bi bi-geo-alt"></i> {{ d.last.keterangan }}</span>
+            </div>
+            <div class="mini-list__side">
+              <status-badge :status="d.status" compact></status-badge>
+              <span class="mini-list__meta">{{ d.total | rupiah }}</span>
+            </div>
+          </li>
+        </ul>
+        <div v-else class="empty empty--sm">
+          <i class="bi bi-inbox empty__icon"></i>
+          <p class="empty__text">Belum ada Delivery Order.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
