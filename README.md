@@ -6,7 +6,8 @@
 
 **Aplikasi dashboard berbasis Vue.js untuk mengelola stok bahan ajar, pemesanan, dan pelacakan Delivery Order (DO) di lingkungan UT-Daerah.**
 
-Tugas Praktik 3 · STSI4209 Pemrograman Berbasis Web · Universitas Terbuka
+Tugas Praktik 3 · STSI4209 Pemrograman Berbasis Web · Universitas Terbuka<br>
+**Yaya Sunarya** · NIM 056860328 · Sistem Informasi · UPBJJ UT Bandung
 
 [![Vue.js](https://img.shields.io/badge/Vue.js-2.7.16-4FC08D?logo=vuedotjs&logoColor=white)](https://v2.vuejs.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES2020-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
@@ -330,7 +331,16 @@ Diuji pada Google Chrome versi terbaru (desktop & emulasi mobile). Aplikasi mema
 
 ## 👤 Penyusun
 
-Dikembangkan oleh **[yasunstudio](https://github.com/yasunstudio)** sebagai pemenuhan **Tugas Praktik 3** mata kuliah **STSI4209 Pemrograman Berbasis Web**, Universitas Terbuka.
+Dikembangkan sebagai pemenuhan **Tugas Praktik 3** mata kuliah **STSI4209 Pemrograman Berbasis Web**, Universitas Terbuka.
+
+| Biodata | Keterangan |
+|---|---|
+| **Nama** | Yaya Sunarya |
+| **NIM** | 056860328 |
+| **Program Studi** | Sistem Informasi |
+| **Fakultas** | Sains dan Teknologi |
+| **UPBJJ UT** | Bandung |
+| **GitHub** | [@yasunstudio](https://github.com/yasunstudio) |
 
 <div align="center">
 <sub>Proyek akademik · Data yang digunakan adalah data dummy dari lampiran tugas.</sub>
